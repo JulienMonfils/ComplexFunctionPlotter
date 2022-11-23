@@ -1,0 +1,72 @@
+import numpy as np
+from matplotlib import pyplot as plt
+
+
+def square(line):
+    return line**2
+def cube(line):
+    return line**3
+
+def exponential(line):
+    return np.exp(line.real)*(np.cos(line.imag)+1j*np.sin(line.imag))   #Formule du cours page 40
+    
+def plotFunction(nHorizontal, xMin, xMax, nVertical, yMin, yMax, n, func = None, visibleRow = None, visibleCol = None, horizontalConstant = None, VerticalConstant = None):
+
+    """
+    nHorizontal : le Nombre de lignes horizontales à plot
+    xMin /xMax  : l'abscisse min/max des lignes horizontales
+    nVertical   : le nombre de lignes verticales à plot
+    yMin /yMax  : l'ordonnée min/max des lignes verticales
+    n           : la précision des lignes (nombre de points à calculer) => les linspaces
+    func        : une fonction qui prend en paramètre un array (linspace) et qui renvoie un array de même taille
+    horizontalConstant  : les ordonnées des lignes horizontales (si pas la bonne taille de tableau ou non fourni, on utilise un linsapce entre -1,1)
+    verticalConstat     : les absices des lignes verticales (si pas la bonne taille de tableau ou non fourni, on utilise un linsapce entre -1,1)
+    """
+    if func == None:
+        print("pas de fonction fournie")
+        return -1
+
+    #Si rien fourni, on met un linspace entre -1, 1
+    if horizontalConstant == None :
+        horizontalConstant = np.linspace(-1,1,nHorizontal)
+    if VerticalConstant == None:
+        VerticalConstant = np.linspace(-1,1,nVertical)
+
+    #Si pas la bonne taille, on met un linspace entre -1, 1
+    if len(horizontalConstant) != nHorizontal:
+        horizontalConstant = np.linspace(-1,1,n)
+    if len(VerticalConstant) != nVertical:
+        VerticalConstant = np.linspace(-1,1,n)
+
+
+    fig = plt.figure()
+
+    #On plot les lignes verticales et leurs images
+    for i in range(nVertical):
+        line = np.linspace(yMin, yMax, n)*1j + VerticalConstant[i]
+        imgLine = func(line)
+        if visibleCol == i:         #Si on traite la ligne à mettre en évidence, on le fait
+            plt.plot(line.real, line.imag, "-r", linewidth = 3)
+            plt.plot(imgLine.real, imgLine.imag, '-r', linewidth = 6) 
+        plt.plot(line.real, line.imag, "-b")
+        plt.plot(imgLine.real, imgLine.imag, '-g')
+    
+    #On plot les lignes horizontales et leurs images
+    for i in range(nHorizontal):
+        line = np.linspace(xMin, xMax, n) + horizontalConstant[i]*1j
+        imgLine = func(line)
+
+        if visibleRow == i:         #Si on traite la ligne à mettre en évidence, on le fait
+            plt.plot(line.real, line.imag, "-r", linewidth = 3)
+            plt.plot(imgLine.real, imgLine.imag, '-r', linewidth = 6)
+        plt.plot(line.real, line.imag, "-b")
+        plt.plot(imgLine.real, imgLine.imag, '-g')
+
+
+
+
+
+fig = plotFunction(9, -1,1,10, -1,1,50, func = cube, visibleCol=3)#,[1,2,3],[-1,0,1])
+#plt.xlim(-1,1)
+#plt.ylim(-1,1)
+plt.show()
