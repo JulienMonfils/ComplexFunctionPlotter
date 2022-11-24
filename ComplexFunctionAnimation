@@ -1,0 +1,157 @@
+import matplotlib.pyplot as plt
+from matplotlib import animation
+from numpy import random 
+import numpy as np
+from matplotlib.animation import writers
+
+#Fonction pour mettre line**n où n appartient à [1,2] en fonction de p qui appartient à [0,animPrecision]
+#Permet de calculer la line de chaque frame de l'animation
+def powerToSquareForward(line, p, animPrecision):
+    return line**(1+ p/(animPrecision-1))
+def powerToSquareBackward(line, p, animPrecision):
+    return line**(2- p/(animPrecision-1))
+
+#Fonction pour mettre line**n où n appartient à [1,3] en fonction de p qui appartient à [0,animPrecision]
+#Permet de calculer la line de chaque frame de l'animation
+def powerToCubeForward(line, p, animPrecision):
+    return line**(1+ 2*p/(animPrecision-1))
+def powerToCubeBackward(line, p, animPrecision):
+    return line**(3- 2*p/(animPrecision-1))
+
+#Y a trop d'arguments, déso
+def plotFunction(nHorizontal, xMin, xMax, nVertical, yMin, yMax, n, animPrecision,forward = None, backward = None, visibleRow = None, visibleCol = None, horizontalConstant = None, VerticalConstant = None):
+
+    """
+    nHorizontal : le Nombre de lignes horizontales à plot
+    xMin /xMax  : l'abscisse min/max des lignes horizontales
+    nVertical   : le nombre de lignes verticales à plot
+    yMin /yMax  : l'ordonnée min/max des lignes verticales
+    n           : la précision des lignes (nombre de points à calculer) => les linspaces
+    forward     : la fonction qui génère l'animation dans le sens p croissant
+    bacward     : la fonction qui génère l'animation dans le sens p décroissant
+    horizontalConstant  : les ordonnées des lignes horizontales (si pas la bonne taille de tableau ou non fourni, on utilise un linsapce entre -1,1)
+    verticalConstat     : les absices des lignes verticales (si pas la bonne taille de tableau ou non fourni, on utilise un linsapce entre -1,1)
+    """
+
+    #Si pas de fonctions donnée, ça ne va pas marcher :-)
+    if forward == None or backward == None:
+        print("pas de fonction fournie")
+        return -1
+    
+
+    #On créé un array avec (ligne numéro i, frame numéro j, valeur complexe)
+    bigArr = np.zeros((nHorizontal + nVertical, animPrecision*2, n), dtype = "complex_")
+
+    #Si rien fourni, on met un linspace entre -1, 1
+    if horizontalConstant == None :
+        horizontalConstant = np.linspace(-1,1,nHorizontal)
+    if VerticalConstant == None:
+        VerticalConstant = np.linspace(-1,1,nVertical)
+
+    #Si pas la bonne taille, on met un linspace entre -1, 1
+    if len(horizontalConstant) != nHorizontal:
+        print("erreur taille d'argument")
+        return -1
+    if len(VerticalConstant) != nVertical:
+        print("erreur taille d'argument")
+        return -1
+
+    #On mets dans l'array les lignes verticales et leurs images
+    for i in range(nVertical):
+        for j in range(animPrecision):
+            line = np.linspace(yMin, yMax, n)*1j + VerticalConstant[i]
+            imgLine = forward(line, j, animPrecision)
+            bigArr[i, j] = imgLine
+        for j in range(animPrecision, -1,-1):
+            line = np.linspace(yMin, yMax, n)*1j + VerticalConstant[i]
+            imgLine = backward(line, j, animPrecision)
+            bigArr[i, j+animPrecision-1] = imgLine
+
+  
+    #On mets dans l'array les lignes horizontales et leurs images
+    for i in range(nHorizontal):
+        for j in range(animPrecision):
+            line = np.linspace(xMin, xMax, n) + horizontalConstant[i]*1j
+            imgLine = forward(line, j, animPrecision)
+            bigArr[nVertical+i,j] = imgLine
+        for j in range(animPrecision, -1, -1):
+            line = np.linspace(xMin, xMax, n) + horizontalConstant[i]*1j
+            imgLine = backward(line, j, animPrecision)
+            bigArr[nVertical+i,j+animPrecision-1] = imgLine
+
+    return bigArr
+
+frame_num = 250  #Nombre de frame à l'animation (plus y en a, plus c'est smooth)
+n = 150           #Nombre de point dans chaque ligne (plus y en a, plus les courbes plus c'est smooth)
+
+arr = plotFunction(nHorizontal=5, xMin = -2, xMax= 2, nVertical=5, yMin = -2, yMax = 2, n = n, animPrecision=frame_num, horizontalConstant=[-2,-1,0,1,2], VerticalConstant=[-2,-1,0,1,2], backward=powerToCubeBackward, forward=powerToCubeForward)
+
+###################################################################
+
+###############################################################
+
+
+#On prend un taille de fenêtre qui fait rentrer notre fonction 
+#(attention si la fonction prend des grandes valeurs localement, on ne verra plus rien)
+
+value = max(arr.real.min(), arr.real.max(), arr.imag.min(), arr.imag.max(), key=abs)
+value = value*1.1
+
+
+#Code volé sur internet pour faire des animations avec plusieurs lines que j'ai un peu modifié
+#pour faire ce que je voulais
+#https://stackoverflow.com/questions/23049762/matplotlib-multiple-animate-multiple-lines
+
+
+fig = plt.figure()
+ax1 = plt.axes(xlim=(-1*value, value), ylim=(-1*value,value))
+line, = ax1.plot([], [], lw=2)
+
+
+
+plotlays, plotcols = [2], ["black","red"]
+lines = []
+
+redIndex = 8 #permet de mettre une colonne en évidence (rouge)
+
+for index in range(len(arr)):
+    if index != redIndex:
+        lobj = ax1.plot([],[],lw=2, color = "blue")[0]
+    else : 
+        lobj = ax1.plot([],[],lw=2, color = "red")[0]
+    lines.append(lobj)
+
+def init():
+    for line in lines:
+        line.set_data([],[])
+    return lines
+
+x1,y1 = np.array([]),np.array([])
+x2,y2 = np.array([]),np.array([])
+xlist = np.zeros((len(arr), n))
+ylist = np.zeros((len(arr), n))
+
+def animate(i):
+    for j in range(len(arr)):
+        x = arr[j,i].real
+        y = arr[j,i].imag
+
+
+        xlist[j] = x
+        ylist[j] = y
+
+
+    for lnum,line in enumerate(lines):
+        line.set_data(xlist[lnum], ylist[lnum]) # set data for each line separately. 
+
+    return lines
+
+# call the animator.  blit=True means only re-draw the parts that have changed.
+anim = animation.FuncAnimation(fig, animate, init_func=init,
+                               frames=frame_num*2, interval=10, blit=False) #Plus interval est grand, plus l'animation est lente
+
+f = r"Downloads/anim.gif"
+writergif = animation.PillowWriter(fps=30) 
+anim.save(f, writer=writergif)
+
+plt.show()
